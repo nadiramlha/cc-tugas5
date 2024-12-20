@@ -1,0 +1,80 @@
+name: CI/CD for Kubernetes
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'latest'
+
+    - name: Set Kubeconfig File (Staging)
+      run: |
+        echo "${{ secrets.KUBECONFIG_STAGING }}" > kubeconfig
+        export KUBECONFIG=$(pwd)/kubeconfig
+
+    - name: Deploy to Staging
+      run: |
+        kubectl apply -f apps/nginx-deployment/nginx-deployment.yaml
+        kubectl apply -f apps/nginx-deployment/nginx-ingress.yaml
+
+    - name: Upload Deployment Logs (Staging)
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: deployment-logs-staging
+        path: /tmp/deployment-staging.log
+
+    - name: Set Kubeconfig File (Production)
+      run: |
+        echo "${{ secrets.KUBECONFIG_PRODUCTION }}" > kubeconfig
+        export KUBECONFIG=$(pwd)/kubeconfig
+
+    - name: Deploy to Production
+      run: |
+        kubectl apply -f apps/nginx-deployment/nginx-deployment.yaml
+        kubectl apply -f apps/nginx-deployment/nginx-ingress.yaml
+
+    - name: Upload Deployment Logs (Production)
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: deployment-logs-production
+        path: /tmp/deployment-production.log
+
+    - name: Rollback if Failed
+      if: failure()
+      run: |
+        kubectl rollout undo deployment/nginx-deployment
+
+    - name: Send Email Notification via SendGrid
+      if: always()
+      env:
+        SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+      run: |
+        curl --request POST \
+          --url https://api.sendgrid.com/v3/mail/send \
+          --header 'Authorization: Bearer $SENDGRID_API_KEY' \
+          --header 'Content-Type: application/json' \
+          --data '{
+            "personalizations": [
+              {
+                "to": [{ "email": "your-email@example.com" }]
+              }
+            ],
+            "from": { "email": "noreply@example.com" },
+            "subject": "🚀 CI/CD Pipeline - ${{ job.status }}",
+            "content": [
+              { "type": "text/plain", "value": "Pipeline CI/CD Kubernetes Selesai. Status: ${{ job.status }}. \nLihat log di tab Actions di GitHub." }
+            ]
+          }'
