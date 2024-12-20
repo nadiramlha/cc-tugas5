@@ -30,7 +30,7 @@ jobs:
 
     - name: Upload Deployment Logs (Staging)
       if: always()
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: deployment-logs-staging
         path: /tmp/deployment-staging.log
@@ -47,7 +47,7 @@ jobs:
 
     - name: Upload Deployment Logs (Production)
       if: always()
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: deployment-logs-production
         path: /tmp/deployment-production.log
