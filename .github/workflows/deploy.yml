@@ -23,7 +23,7 @@ jobs:
           echo "${{ secrets.KUBECONFIG_PRODUCTION }}" > kubeconfig
           export KUBECONFIG=$(pwd)/kubeconfig
 
-      - name: Use kind context
+      - name: Use kind-mylab99 context
         run: kubectl config use-context kind-mylab99
 
       - name: Deploy to Staging
