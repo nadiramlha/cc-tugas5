@@ -20,7 +20,7 @@ jobs:
 
       - name: Set Kubeconfig File (Staging)
         run: |
-          echo "${{ secrets.KUBECONFIG_STAGING }}" > kubeconfig
+          echo "${{ secrets.KUBECONFIG_PRODUCTION }}" > kubeconfig
           export KUBECONFIG=$(pwd)/kubeconfig
 
       - name: Use kind context
@@ -40,37 +40,3 @@ jobs:
       - name: Verify Deployment in Staging
         run: |
           kubectl get pods --namespace=default -l app=nginx
-
-      - name: Set Kubeconfig File (Production)
-        run: |
-          echo "${{ secrets.KUBECONFIG_PRODUCTION }}" > kubeconfig
-          export KUBECONFIG=$(pwd)/kubeconfig
-
-      - name: Deploy to Production
-        run: |
-          kubectl apply -f apps/nginx-deployment/nginx-deployment.yaml >> /tmp/deployment-production.log 2>&1
-          kubectl apply -f apps/nginx-deployment/nginx-ingress.yaml >> /tmp/deployment-production.log 2>&1
-
-      - name: Upload Deployment Logs (Production)
-        uses: actions/upload-artifact@v3
-        with:
-          name: deployment-logs-production
-          path: /tmp/deployment-production.log
-
-      - name: Verify Deployment in Production
-        run: |
-          kubectl get pods --namespace=default -l app=nginx
-
-      - name: Rollback Staging if Failed
-        if: failure()
-        run: |
-          echo "${{ secrets.KUBECONFIG_STAGING }}" > kubeconfig
-          export KUBECONFIG=$(pwd)/kubeconfig
-          kubectl rollout undo deployment/nginx-deployment
-
-      - name: Rollback Production if Failed
-        if: failure()
-        run: |
-          echo "${{ secrets.KUBECONFIG_PRODUCTION }}" > kubeconfig
-          export KUBECONFIG=$(pwd)/kubeconfig
-          kubectl rollout undo deployment/nginx-deployment
