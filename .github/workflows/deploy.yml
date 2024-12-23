@@ -59,18 +59,3 @@ jobs:
     - name: Verify Deployment in Production
       run: |
         kubectl get pods --namespace=default -l app=nginx
-
-    - name: Rollback Staging if Failed
-      if: failure()
-      run: |
-        echo "${{ secrets.KUBECONFIG_STAGING }}" > kubeconfig
-        export KUBECONFIG=$(pwd)/kubeconfig
-        kubectl rollout undo deployment/nginx-deployment
-
-    - name: Rollback Production if Failed
-      if: failure()
-      run: |
-        echo "${{ secrets.KUBECONFIG_PRODUCTION }}" > kubeconfig
-        export KUBECONFIG=$(pwd)/kubeconfig
-        kubectl rollout undo deployment/nginx-deployment
-
